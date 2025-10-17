@@ -9,6 +9,7 @@ import {
   ValidationPipe,
   UsePipes,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto, UpdateCommentDto } from './dto';
 import { ClientIp } from '../common/decorators';
@@ -18,6 +19,7 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
+  @Throttle({ default: { limit: 2, ttl: 30000 } })
   @UsePipes(new ValidationPipe({ transform: true }))
   create(
     @Param('postId') postId: string,

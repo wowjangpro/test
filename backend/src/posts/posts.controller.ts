@@ -10,6 +10,7 @@ import {
   ValidationPipe,
   UsePipes,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PostsService } from './posts.service';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { ClientIp } from '../common/decorators';
@@ -19,6 +20,7 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
+  @Throttle({ default: { limit: 2, ttl: 30000 } })
   @UsePipes(new ValidationPipe({ transform: true }))
   create(@Body() createPostDto: CreatePostDto, @ClientIp() clientIp: string) {
     return this.postsService.create(createPostDto, clientIp);
