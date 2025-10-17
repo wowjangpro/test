@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { supabase, STORAGE_BUCKET } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import sharp from 'sharp';
 
 @Injectable()
 export class ImagesService {
@@ -15,52 +16,93 @@ export class ImagesService {
     'image/gif',
     'image/webp',
   ];
+  private readonly MAX_IMAGE_WIDTH = 1920;
+  private readonly MAX_IMAGE_HEIGHT = 1080;
+  private readonly WEBP_QUALITY = 85;
 
   async uploadImage(
     file: Express.Multer.File,
     postId: string,
-  ): Promise<{ id: string; url: string }> {
+  ): Promise<{ id: string; url: string; thumbnail: string }> {
     this.validateFile(file);
 
-    const fileExt = file.originalname.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
+    const fileName = `${uuidv4()}.webp`;
+    const thumbnailName = `${uuidv4()}_thumb.webp`;
     const filePath = `posts/${postId}/${fileName}`;
+    const thumbnailPath = `posts/${postId}/${thumbnailName}`;
 
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(filePath, file.buffer, {
-        contentType: file.mimetype,
+    let processedBuffer: Buffer;
+    let thumbnailBuffer: Buffer;
+
+    if (file.mimetype === 'image/gif') {
+      processedBuffer = file.buffer;
+      thumbnailBuffer = await sharp(file.buffer)
+        .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: this.WEBP_QUALITY })
+        .toBuffer();
+    } else {
+      processedBuffer = await sharp(file.buffer)
+        .resize(this.MAX_IMAGE_WIDTH, this.MAX_IMAGE_HEIGHT, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .webp({ quality: this.WEBP_QUALITY })
+        .toBuffer();
+
+      thumbnailBuffer = await sharp(file.buffer)
+        .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: this.WEBP_QUALITY })
+        .toBuffer();
+    }
+
+    const [mainUpload, thumbUpload] = await Promise.all([
+      supabase.storage.from(STORAGE_BUCKET).upload(filePath, processedBuffer, {
+        contentType: 'image/webp',
         upsert: false,
-      });
+      }),
+      supabase.storage.from(STORAGE_BUCKET).upload(thumbnailPath, thumbnailBuffer, {
+        contentType: 'image/webp',
+        upsert: false,
+      }),
+    ]);
 
-    if (error) {
-      throw new BadRequestException(`이미지 업로드 실패: ${error.message}`);
+    if (mainUpload.error) {
+      throw new BadRequestException(`이미지 업로드 실패: ${mainUpload.error.message}`);
+    }
+
+    if (thumbUpload.error) {
+      throw new BadRequestException(`썸네일 업로드 실패: ${thumbUpload.error.message}`);
     }
 
     const image = await this.prisma.image.create({
       data: {
         post_id: postId,
-        file_path: data.path,
+        file_path: mainUpload.data.path,
         file_name: file.originalname,
-        file_size: file.size,
-        mime_type: file.mimetype,
+        file_size: processedBuffer.length,
+        mime_type: 'image/webp',
       },
     });
 
     const { data: urlData } = supabase.storage
       .from(STORAGE_BUCKET)
-      .getPublicUrl(data.path);
+      .getPublicUrl(mainUpload.data.path);
+
+    const { data: thumbUrlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(thumbUpload.data.path);
 
     return {
       id: image.id,
       url: urlData.publicUrl,
+      thumbnail: thumbUrlData.publicUrl,
     };
   }
 
   async uploadImages(
     files: Express.Multer.File[],
     postId: string,
-  ): Promise<Array<{ id: string; url: string }>> {
+  ): Promise<Array<{ id: string; url: string; thumbnail: string }>> {
     if (files.length > 5) {
       throw new BadRequestException('최대 5개의 이미지만 업로드할 수 있습니다');
     }

@@ -34,13 +34,11 @@ export class PostsService {
 
   async findAll(params?: {
     category?: string;
-    page?: number;
+    cursor?: string;
     limit?: number;
     sort?: string;
   }) {
-    const page = params?.page || 1;
     const limit = params?.limit || 20;
-    const skip = (page - 1) * limit;
 
     const where = {
       deleted_at: null,
@@ -49,42 +47,48 @@ export class PostsService {
 
     const orderBy =
       params?.sort === 'popular'
-        ? { view_count: 'desc' as const }
-        : { created_at: 'desc' as const };
+        ? [{ view_count: 'desc' as const }, { created_at: 'desc' as const }]
+        : [{ created_at: 'desc' as const }, { id: 'desc' as const }];
 
-    const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where,
-        orderBy,
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          category: true,
-          anonymous_name: true,
-          anonymous_color: true,
-          view_count: true,
-          created_at: true,
-          updated_at: true,
-          _count: {
-            select: {
-              comments: true,
-            },
+    const posts = await this.prisma.post.findMany({
+      where: {
+        ...where,
+        ...(params?.cursor && {
+          created_at: {
+            lt: new Date(params.cursor),
+          },
+        }),
+      },
+      orderBy,
+      take: limit + 1,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        category: true,
+        anonymous_name: true,
+        anonymous_color: true,
+        view_count: true,
+        created_at: true,
+        updated_at: true,
+        _count: {
+          select: {
+            comments: true,
           },
         },
-      }),
-      this.prisma.post.count({ where }),
-    ]);
+      },
+    });
+
+    const hasNextPage = posts.length > limit;
+    const items = hasNextPage ? posts.slice(0, -1) : posts;
+    const nextCursor = hasNextPage ? items[items.length - 1].created_at.toISOString() : null;
 
     return {
-      posts,
+      posts: items,
       pagination: {
-        page,
+        nextCursor,
+        hasNextPage,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -174,16 +178,14 @@ export class PostsService {
   async search(params: {
     q: string;
     category?: string;
-    page?: number;
+    cursor?: string;
     limit?: number;
   }) {
     if (!params.q) {
       throw new BadRequestException('검색어를 입력해주세요');
     }
 
-    const page = params.page || 1;
     const limit = params.limit || 20;
-    const skip = (page - 1) * limit;
 
     const where = {
       deleted_at: null,
@@ -196,42 +198,46 @@ export class PostsService {
         },
         ...(params.category ? [{ category: params.category }] : []),
       ],
-    };
-
-    const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where,
-        orderBy: { created_at: 'desc' },
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          category: true,
-          anonymous_name: true,
-          anonymous_color: true,
-          view_count: true,
-          created_at: true,
-          updated_at: true,
-          _count: {
-            select: {
-              comments: true,
-            },
-          },
+      ...(params.cursor && {
+        created_at: {
+          lt: new Date(params.cursor),
         },
       }),
-      this.prisma.post.count({ where }),
-    ]);
+    };
+
+    const posts = await this.prisma.post.findMany({
+      where,
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        category: true,
+        anonymous_name: true,
+        anonymous_color: true,
+        view_count: true,
+        created_at: true,
+        updated_at: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
+    });
+
+    const hasNextPage = posts.length > limit;
+    const items = hasNextPage ? posts.slice(0, -1) : posts;
+    const nextCursor = hasNextPage ? items[items.length - 1].created_at.toISOString() : null;
 
     return {
-      posts,
+      posts: items,
       query: params.q,
       pagination: {
-        page,
+        nextCursor,
+        hasNextPage,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
       },
     };
   }

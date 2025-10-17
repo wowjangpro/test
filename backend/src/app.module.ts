@@ -7,6 +7,7 @@ import { CommentsModule } from './comments/comments.module';
 import { ReactionsModule } from './reactions/reactions.module';
 import { ImagesModule } from './images/images.module';
 import { ReportsModule } from './reports/reports.module';
+import { AdminModule } from './admin/admin.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { IpThrottlerGuard } from './common/guards/ip-throttler.guard';
@@ -25,6 +26,7 @@ import { IpThrottlerGuard } from './common/guards/ip-throttler.guard';
     ReactionsModule,
     ImagesModule,
     ReportsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

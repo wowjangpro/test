@@ -29,13 +29,13 @@ export class PostsController {
   @Get()
   findAll(
     @Query('category') category?: string,
-    @Query('page') page?: string,
+    @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
   ) {
     return this.postsService.findAll({
       category,
-      page: page ? parseInt(page, 10) : undefined,
+      cursor,
       limit: limit ? parseInt(limit, 10) : undefined,
       sort,
     });
@@ -45,13 +45,13 @@ export class PostsController {
   search(
     @Query('q') q: string,
     @Query('category') category?: string,
-    @Query('page') page?: string,
+    @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
     return this.postsService.search({
       q,
       category,
-      page: page ? parseInt(page, 10) : undefined,
+      cursor,
       limit: limit ? parseInt(limit, 10) : undefined,
     });
   }
