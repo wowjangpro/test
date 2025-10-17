@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "SlashCommand(/BMad:agents:architect)",
+      "Bash(npx create-next-app:*)",
+      "Bash(node:*)",
+      "Bash(npm --version)",
+      "Bash(echo $PATH)",
+      "Bash(source:*)",
+      "Bash(npm install)",
+      "Bash(npx @nestjs/cli@latest new:*)",
+      "Bash(npm run dev:frontend:*)",
+      "Read(//Users/jeniel/.nvm/**)",
+      "Bash(export NVM_DIR=\"$HOME/.nvm\")",
+      "Bash([ -s \"$NVM_DIR/nvm.sh\" ])",
+      "Bash(. \"$NVM_DIR/nvm.sh\")",
+      "Bash(npm run dev:backend:*)",
+      "Bash(npm run dev)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx --workspace=backend prisma generate)",
+      "Bash(pkill:*)",
+      "Bash(npm --workspace=backend test -- anonymous)",
+      "Bash(npm --workspace=backend test -- helper)",
+      "Bash(npx nest generate:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx --workspace=backend tsc --noEmit)",
+      "Bash(npx --workspace=backend prisma migrate dev --name init)",
+      "Bash(npx --workspace=backend prisma migrate dev --create-only --name init)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
+    "morphllm-fast-apply",
+    "chrome-devtools",
+    "taskmaster-ai"
+  ]
+}

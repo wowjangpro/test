@@ -1,0 +1,34 @@
+{
+  "name": "whisper-board",
+  "version": "0.1.0",
+  "private": true,
+  "description": "완전 익명 게시판 플랫폼 - Supabase 기반 토이 프로젝트",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "dev:backend": "npm --workspace=backend run start:dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm --workspace=frontend run build",
+    "build:backend": "npm --workspace=backend run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "npm --workspace=frontend run test",
+    "test:backend": "npm --workspace=backend run test",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "npm --workspace=frontend run lint",
+    "lint:backend": "npm --workspace=backend run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "prettier": "^3.4.2"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=10.0.0"
+  }
+}

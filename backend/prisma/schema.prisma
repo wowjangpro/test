@@ -1,0 +1,110 @@
+// WhisperBoard Database Schema
+// Supabase PostgreSQL Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 게시글
+model Post {
+  id              String    @id @default(uuid())
+  title           String
+  content         String    @db.Text
+  category        String?
+  anonymous_name  String
+  anonymous_color String
+  password_hash   String?
+  ip_hash         String
+  view_count      Int       @default(0)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  comments Comment[]
+  images   Image[]
+
+  @@index([category])
+  @@index([created_at])
+  @@index([deleted_at])
+  @@map("posts")
+}
+
+// 댓글
+model Comment {
+  id              String    @id @default(uuid())
+  post_id         String
+  parent_id       String?
+  content         String    @db.Text
+  anonymous_name  String
+  anonymous_color String
+  password_hash   String?
+  ip_hash         String
+  depth           Int       @default(0)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  post    Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([post_id])
+  @@index([parent_id])
+  @@index([created_at])
+  @@index([deleted_at])
+  @@map("comments")
+}
+
+// 반응 (좋아요/싫어요)
+model Reaction {
+  id            String   @id @default(uuid())
+  target_type   String   // 'post' or 'comment'
+  target_id     String   // post_id or comment_id
+  reaction_type String   // 'like' or 'dislike'
+  session_id    String
+  created_at    DateTime @default(now())
+
+  @@unique([target_type, target_id, session_id])
+  @@index([target_type, target_id])
+  @@index([session_id])
+  @@map("reactions")
+}
+
+// 이미지
+model Image {
+  id         String   @id @default(uuid())
+  post_id    String
+  file_path  String
+  file_name  String
+  file_size  Int
+  mime_type  String
+  created_at DateTime @default(now())
+
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+  @@map("images")
+}
+
+// 신고
+model Report {
+  id          String    @id @default(uuid())
+  target_type String    // 'post' or 'comment'
+  target_id   String    // post_id or comment_id
+  reason      String
+  description String?   @db.Text
+  ip_hash     String
+  status      String    @default("pending") // 'pending', 'reviewed', 'resolved'
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  @@index([target_type, target_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("reports")
+}
